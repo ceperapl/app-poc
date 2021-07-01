@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package tasks.v1;
+
+option go_package = "pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+message Task {
+	string id = 1;
+    string description = 2;
+    google.protobuf.Timestamp deadline = 3;
+    bool completed = 4;
+	google.protobuf.Timestamp createdAt = 5;
+	google.protobuf.Timestamp updatedAt = 6;
+}
+
+message GetTaskRequest {
+	string id = 1;
+}
+
+message ListTasksRequest {
+    string filter_by = 1;
+    string sort_by = 2;
+    int32 limit = 3;
+    int32 page = 4;
+}
+
+message ListTasksResponse {
+	repeated Task result = 1;
+	int32 count = 2;
+}
+
+message DeleteTaskRequest {
+	string id = 1;
+}
+
+service Tasks {
+	rpc CreateTask(Task) returns (Task) {
+		option (google.api.http) = {
+			post: "/api/v1/tasks"
+			body: "*"
+		};
+	}
+
+	rpc GetTask(GetTaskRequest) returns (Task) {
+		option (google.api.http) = {
+			get: "/api/v1/tasks/{id}"
+		};
+	}
+
+	rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/tasks"
+		};
+	}
+
+	rpc UpdateTask(Task) returns (Task) {
+		option (google.api.http) = {
+			patch: "/api/v1/tasks/{id}"
+			body: "*"
+		};
+	}
+
+	rpc DeleteTask(DeleteTaskRequest) returns (google.protobuf.Empty) {
+		option (google.api.http) = {
+			delete: "/api/v1/tasks/{id}"
+		};
+	}
+}
