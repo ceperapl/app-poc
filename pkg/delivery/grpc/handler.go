@@ -128,7 +128,11 @@ func (s *server) UpdateTask(ctx context.Context, req *pb.Task) (*pb.Task, error)
 }
 
 func (s *server) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*empty.Empty, error) {
-	return nil, nil
+	err := s.usecase.DeleteTask(req.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func isValidUUID(u string) bool {

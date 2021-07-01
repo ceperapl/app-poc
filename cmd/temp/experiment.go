@@ -1,66 +1,92 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
-	"strconv"
 
-	"github.com/ceperapl/app-poc/pkg/models"
-	"github.com/ceperapl/app-poc/pkg/repository/memory"
-	"github.com/ceperapl/app-poc/pkg/usecase"
+	api "github.com/ceperapl/app-poc/pkg/delivery/grpc/pb"
+	"google.golang.org/grpc"
+)
+
+const (
+	serverAddr = "localhost:9090"
 )
 
 func main() {
-	memoryTaskRepo, err := memory.NewTaskRepo()
+	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	client := api.NewTasksClient(conn)
+	ctx := context.Background()
+
+	// List tasks
+	err = listTasks(ctx, client)
 	if err != nil {
 		log.Fatal(err)
 	}
-	taskService := usecase.NewTaskService(memoryTaskRepo)
 
-	printTasks(taskService)
-
-	for i := 0; i < 9; i++ {
-		if _, err = taskService.CreateTask(&models.Task{Description: "task" + strconv.Itoa(i)}); err != nil {
-			log.Fatal(err)
-		}
+	// Create tasks
+	tasks := []api.Task{
+		{
+			Id:          "00000000-0000-0000-0000-000000000001",
+			Description: "task1",
+		},
+		{
+			Id:          "00000000-0000-0000-0000-000000000002",
+			Description: "task2",
+		},
+		{
+			Id:          "00000000-0000-0000-0000-000000000003",
+			Description: "task3",
+		},
 	}
-	if _, err = taskService.CreateTask(&models.Task{ID: "f4636a57-2237-468d-ba46-016e9a3c62e6", Description: "task10"}); err != nil {
+
+	if err := createTasks(ctx, client, tasks); err != nil {
 		log.Fatal(err)
 	}
-	if _, err = taskService.CreateTask(&models.Task{ID: "f4636a57-2237-468d-ba46-016e9a3c62e7", Description: "task11"}); err != nil {
-		log.Fatal(err)
-	}
 
-	if _, err = taskService.GetTask("f4636a57-2237-468d-ba46-016e9a3c62e6"); err != nil {
-		log.Fatal(err)
-	}
-
-	printTasks(taskService)
-
-	_ = taskService.DeleteTask("f4636a57-2237-468d-ba46-016e9a3c62e6")
-
-	printTasks(taskService)
-
-	task11, err := taskService.GetTask("f4636a57-2237-468d-ba46-016e9a3c62e7")
+	// List tasks
+	err = listTasks(ctx, client)
 	if err != nil {
 		log.Fatal(err)
 	}
-	task11.Description = "Task11"
 
-	if _, err = taskService.UpdateTask(task11); err != nil {
+	if _, err = client.DeleteTask(ctx, &api.DeleteTaskRequest{Id: "00000000-0000-0000-0000-000000000001"}); err != nil {
 		log.Fatal(err)
 	}
-	printTasks(taskService)
 
-	_ = taskService.DeleteTask(task11.ID)
-
-	printTasks(taskService)
+	// List tasks
+	err = listTasks(ctx, client)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func printTasks(taskService usecase.TaskService) {
-	tasks, count, _ := taskService.ListTasks("", "", 0, 0)
-	fmt.Println(count)
+func createTasks(ctx context.Context, client api.TasksClient, tasks []api.Task) error {
 	for _, task := range tasks {
-		fmt.Printf("%v\n", task)
+		_, err := client.CreateTask(ctx, &task)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
+}
+
+func listTasks(ctx context.Context, client api.TasksClient) error {
+	response, err := client.ListTasks(ctx, &api.ListTasksRequest{})
+	if err != nil {
+		return err
+	}
+
+	tasks := response.Result
+	log.Println("List tasks:", len(tasks))
+	for _, task := range tasks {
+		log.Printf("Task: Id: %s, Description: %s, CreatedAt: %v, UpdatedAt: %v\n",
+			task.Id, task.Description, task.CreatedAt, task.UpdatedAt)
+	}
+	return nil
 }
