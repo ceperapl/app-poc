@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"flag"
 	"fmt"
 	"io"
@@ -28,6 +29,9 @@ const (
 	// Web-UI
 	defaultWebUIPort = "8088"
 )
+
+//go:embed data/recipes.json
+var recipes []byte
 
 func main() {
 	serverPort := flag.String("server.port", defaultServerPort, "port of gRPC server")
@@ -78,6 +82,10 @@ func main() {
 	fs := http.FileServer(staticFS)
 	// Serve static files
 	webUImux.Handle("/assets/", fs)
+	// Serve recipes data
+	webUImux.HandleFunc("/data", func(w http.ResponseWriter, req *http.Request) {
+		w.Write(recipes)
+	})
 	// Handle all other requests
 	webUImux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		var path = req.URL.Path
