@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/ceperapl/app-poc/dist"
 	deliveryGrpc "github.com/ceperapl/app-poc/pkg/delivery/grpc"
@@ -80,7 +81,7 @@ func main() {
 
 	log.Println("HTTP Gateway Run at ", fmt.Sprintf("0.0.0.0:%s", *gatewayPort))
 	go func() {
-		doneC <- http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", *gatewayPort), gatewayMux)
+		doneC <- http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", *gatewayPort), allowCORS(gatewayMux))
 	}()
 
 	webUImux := http.NewServeMux()
@@ -114,4 +115,27 @@ func main() {
 	if err := <-doneC; err != nil {
 		log.Fatal(err)
 	}
+}
+
+// allowCORS allows Cross Origin Resoruce Sharing from any origin.
+// Don't do this without consideration in production systems.
+func allowCORS(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if origin := r.Header.Get("Origin"); origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			if r.Method == "OPTIONS" && r.Header.Get("Access-Control-Request-Method") != "" {
+				preflightHandler(w, r)
+				return
+			}
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+func preflightHandler(w http.ResponseWriter, r *http.Request) {
+	headers := []string{"Content-Type", "Accept"}
+	w.Header().Set("Access-Control-Allow-Headers", strings.Join(headers, ","))
+	methods := []string{"GET", "HEAD", "POST", "PUT", "DELETE"}
+	w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
+	log.Infof("preflight request for %s", r.URL.Path)
 }

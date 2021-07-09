@@ -11,11 +11,11 @@ class Menu extends Component{
   }
 
   componentDidMount() {
-    fetch('http://localhost:8088/data')
+    fetch('http://localhost:8080/api/v1/recipes')
         .then( resp => resp.json())
         .then((data)=> {
             this.setState({
-                recipes: data
+                recipes: data.result ? data.result : []
             })
         })
   }
