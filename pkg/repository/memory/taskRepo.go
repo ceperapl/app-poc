@@ -1,11 +1,11 @@
 package memory
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ceperapl/app-poc/pkg/models"
+	"github.com/ceperapl/app-poc/pkg/repository"
 	"github.com/google/uuid"
 )
 
@@ -13,11 +13,6 @@ import (
 type TaskRepo struct {
 	tasks []models.Task
 }
-
-var (
-	errTaskNotFound = errors.New("Task not found")
-	errInvalidUUID  = errors.New("Invalid UUID")
-)
 
 // NewTaskRepo returns memory repository implementation
 func NewTaskRepo() (*TaskRepo, error) {
@@ -29,7 +24,7 @@ func (m *TaskRepo) CreateTask(task *models.Task) error {
 	if task.ID == "" {
 		task.ID = uuid.New().String()
 	} else if _, err := uuid.Parse(task.ID); err != nil {
-		return errInvalidUUID
+		return repository.ErrInvalidUUID
 	}
 	now := time.Now()
 	task.CreatedAt = now
@@ -50,7 +45,7 @@ func (m *TaskRepo) GetTask(id string) (*models.Task, error) {
 			return &t, nil
 		}
 	}
-	return nil, errTaskNotFound
+	return nil, repository.ErrTaskNotFound
 }
 
 // ListTasks returns tasks
@@ -67,7 +62,7 @@ func (m *TaskRepo) UpdateTask(task *models.Task) error {
 			return nil
 		}
 	}
-	return errTaskNotFound
+	return repository.ErrTaskNotFound
 }
 
 // DeleteTask deletes task

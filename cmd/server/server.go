@@ -44,20 +44,26 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	memoryRecipeRepo, err := memory.NewRecipeRepo()
+	if err != nil {
+		log.Fatal(err)
+	}
 	taskService := usecase.NewTaskService(memoryTaskRepo)
-	list, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *serverPort))
+	recipeService := usecase.NewRecipeService(memoryRecipeRepo)
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *serverPort))
 	if err != nil {
 		log.Fatalf("SOMETHING HAPPEN: %v", err)
 	}
 
 	server := grpc.NewServer()
 	deliveryGrpc.NewTaskServerGrpc(server, taskService)
+	deliveryGrpc.NewRecipeServerGrpc(server, recipeService)
 	log.Println("GRPC Server Run at ", fmt.Sprintf("0.0.0.0:%s", *serverPort))
 
 	doneC := make(chan error)
 
 	go func() {
-		doneC <- server.Serve(list)
+		doneC <- server.Serve(listener)
 	}()
 
 	conn, err := grpc.Dial(fmt.Sprintf("0.0.0.0:%s", *serverPort), grpc.WithInsecure())
@@ -65,8 +71,10 @@ func main() {
 		log.Fatalf("SOMETHING HAPPEN: %v", err)
 	}
 	gatewayMux := grpc_runtime.NewServeMux()
-	err = pb.RegisterTasksHandler(context.Background(), gatewayMux, conn)
-	if err != nil {
+	if err := pb.RegisterTasksHandler(context.Background(), gatewayMux, conn); err != nil {
+		log.Fatalf("SOMETHING HAPPEN: %v", err)
+	}
+	if err := pb.RegisterRecipesHandler(context.Background(), gatewayMux, conn); err != nil {
 		log.Fatalf("SOMETHING HAPPEN: %v", err)
 	}
 

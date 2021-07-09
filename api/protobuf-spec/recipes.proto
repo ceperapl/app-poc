@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package recipes.v1;
+
+option go_package = "pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+message Recipe {
+	string id = 1;
+    string name = 2;
+    repeated Ingredient ingredients = 3;
+	repeated string steps = 4;
+	google.protobuf.Timestamp createdAt = 5;
+	google.protobuf.Timestamp updatedAt = 6;
+}
+
+message Ingredient {
+	string name = 1;
+	float amount = 2;
+	string measurement = 3;
+}
+
+message GetRecipeRequest {
+	string id = 1;
+}
+
+message ListRecipesRequest {
+    string filter_by = 1;
+    string sort_by = 2;
+    int32 limit = 3;
+    int32 page = 4;
+}
+
+message ListRecipesResponse {
+	repeated Recipe result = 1;
+	int32 count = 2;
+}
+
+message DeleteRecipeRequest {
+	string id = 1;
+}
+
+service Recipes {
+	rpc CreateRecipe(Recipe) returns (Recipe) {
+		option (google.api.http) = {
+			post: "/api/v1/recipes"
+			body: "*"
+		};
+	}
+
+	rpc GetRecipe(GetRecipeRequest) returns (Recipe) {
+		option (google.api.http) = {
+			get: "/api/v1/recipes/{id}"
+		};
+	}
+
+	rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/recipes"
+		};
+	}
+
+	rpc UpdateRecipe(Recipe) returns (Recipe) {
+		option (google.api.http) = {
+			patch: "/api/v1/recipes/{id}"
+			body: "*"
+		};
+	}
+
+	rpc DeleteRecipe(DeleteRecipeRequest) returns (google.protobuf.Empty) {
+		option (google.api.http) = {
+			delete: "/api/v1/recipes/{id}"
+		};
+	}
+}

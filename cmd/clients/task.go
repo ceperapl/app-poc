@@ -8,12 +8,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	serverAddr = "localhost:9090"
-)
-
 func main() {
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}

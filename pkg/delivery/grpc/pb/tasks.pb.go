@@ -6,6 +6,7 @@ Package pb is a generated protocol buffer package.
 
 It is generated from these files:
 	tasks.proto
+	recipes.proto
 
 It has these top-level messages:
 	Task
@@ -13,6 +14,12 @@ It has these top-level messages:
 	ListTasksRequest
 	ListTasksResponse
 	DeleteTaskRequest
+	Recipe
+	Ingredient
+	GetRecipeRequest
+	ListRecipesRequest
+	ListRecipesResponse
+	DeleteRecipeRequest
 */
 package pb
 

@@ -2,14 +2,12 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ceperapl/app-poc/pkg/delivery/grpc/pb"
 	"github.com/ceperapl/app-poc/pkg/models"
 	"github.com/ceperapl/app-poc/pkg/usecase"
-	"github.com/gofrs/uuid"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
@@ -17,22 +15,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var NOT_FOUND_ERROR = errors.New("Entity not found")
-
 func NewTaskServerGrpc(gserver *grpc.Server, taskService usecase.TaskService) {
 
-	taskServer := &server{
+	server := &taskServer{
 		usecase: taskService,
 	}
 
-	pb.RegisterTasksServer(gserver, taskServer)
+	pb.RegisterTasksServer(gserver, server)
 }
 
-type server struct {
+type taskServer struct {
 	usecase usecase.TaskService
 }
 
-func (s *server) transformTask(t *models.Task) (*pb.Task, error) {
+func (s *taskServer) transformTask(t *models.Task) (*pb.Task, error) {
 	var err error
 
 	if t == nil {
@@ -56,7 +52,7 @@ func (s *server) transformTask(t *models.Task) (*pb.Task, error) {
 	return taskPB, nil
 }
 
-func (s *server) transformTaskPB(taskPB *pb.Task) *models.Task {
+func (s *taskServer) transformTaskPB(taskPB *pb.Task) *models.Task {
 	deadline := time.Unix(taskPB.Deadline.GetSeconds(), 0)
 	createdAt := time.Unix(taskPB.CreatedAt.GetSeconds(), 0)
 	updatedAt := time.Unix(taskPB.UpdatedAt.GetSeconds(), 0)
@@ -73,7 +69,7 @@ func (s *server) transformTaskPB(taskPB *pb.Task) *models.Task {
 	return task
 }
 
-func (s *server) CreateTask(ctx context.Context, req *pb.Task) (*pb.Task, error) {
+func (s *taskServer) CreateTask(ctx context.Context, req *pb.Task) (*pb.Task, error) {
 	task := s.transformTaskPB(req)
 	createdTask, err := s.usecase.CreateTask(task)
 	result, err := s.transformTask(createdTask)
@@ -83,7 +79,7 @@ func (s *server) CreateTask(ctx context.Context, req *pb.Task) (*pb.Task, error)
 	return result, nil
 }
 
-func (s *server) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.Task, error) {
+func (s *taskServer) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.Task, error) {
 	id := req.Id
 
 	if !isValidUUID(id) {
@@ -107,7 +103,7 @@ func (s *server) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.Task,
 	return taskPB, nil
 }
 
-func (s *server) ListTasks(ctx context.Context, req *pb.ListTasksRequest) (*pb.ListTasksResponse, error) {
+func (s *taskServer) ListTasks(ctx context.Context, req *pb.ListTasksRequest) (*pb.ListTasksResponse, error) {
 	tasks, count, err := s.usecase.ListTasks(req.FilterBy, req.SortBy, int(req.Limit), int(req.Page))
 	if err != nil {
 		return nil, err
@@ -123,19 +119,14 @@ func (s *server) ListTasks(ctx context.Context, req *pb.ListTasksRequest) (*pb.L
 	return &pb.ListTasksResponse{Result: pbTasks, Count: int32(count)}, nil
 }
 
-func (s *server) UpdateTask(ctx context.Context, req *pb.Task) (*pb.Task, error) {
+func (s *taskServer) UpdateTask(ctx context.Context, req *pb.Task) (*pb.Task, error) {
 	return nil, nil
 }
 
-func (s *server) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*empty.Empty, error) {
+func (s *taskServer) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*empty.Empty, error) {
 	err := s.usecase.DeleteTask(req.Id)
 	if err != nil {
 		return nil, err
 	}
 	return &empty.Empty{}, nil
-}
-
-func isValidUUID(u string) bool {
-	_, err := uuid.FromString(u)
-	return err == nil
 }
