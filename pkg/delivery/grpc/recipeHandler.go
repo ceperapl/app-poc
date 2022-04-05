@@ -106,7 +106,7 @@ func (s *recipeServer) GetRecipe(ctx context.Context, req *pb.GetRecipeRequest) 
 
 	recipe, err := s.usecase.GetRecipe(id)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.NotFound, "ERROR: Recipe is not found: "+id)
 	}
 
 	if recipe == nil {
